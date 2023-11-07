@@ -155,11 +155,10 @@ jobs:
         id: build
         uses: ./.github/actions/do-build
         with:
-          make-target: 'hotspot ${{ inputs.make-arguments }}'
+          make-target: 'product-bundles ${{ inputs.make-arguments }}'
           platform: linux-${{ matrix.target-cpu }}
 
       - name: 'Upload bundles'
         uses: ./.github/actions/upload-bundles
         with:
           platform: linux-${{ matrix.target-cpu }}
-          debug-suffix: ''
