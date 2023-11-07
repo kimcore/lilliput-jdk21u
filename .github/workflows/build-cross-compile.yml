@@ -157,3 +157,9 @@ jobs:
         with:
           make-target: 'hotspot ${{ inputs.make-arguments }}'
           platform: linux-${{ matrix.target-cpu }}
+
+      - name: 'Upload bundles'
+        uses: ./.github/actions/upload-bundles
+        with:
+          platform: linux-${{ matrix.target-cpu }}
+          debug-suffix: ''
