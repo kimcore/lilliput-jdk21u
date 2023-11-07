@@ -46,7 +46,9 @@ runs:
         symbols_bundle="$(ls build/*/bundles/jdk-*_bin${{ inputs.debug-suffix }}-symbols.tar.gz 2> /dev/null || true)"
         tests_bundle="$(ls build/*/bundles/jdk-*_bin-tests${{ inputs.debug-suffix }}.tar.gz 2> /dev/null || true)"
 
-        mkdir bundles
+        if [[ ! -e bundles ]]; then
+          mkdir bundles
+        fi
 
         if [[ "$jdk_bundle_zip" != "" ]]; then
           mv "$jdk_bundle_zip" "bundles/jdk-${{ inputs.platform }}${{ inputs.debug-suffix }}.zip"
