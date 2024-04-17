@@ -887,6 +887,12 @@ void InterpreterMacroAssembler::remove_activation(TosState state,
     // Test if reserved zone needs to be enabled.
     Label no_reserved_zone_enabling;
 
+    // check if already enabled - if so no re-enabling needed
+    assert(sizeof(StackOverflow::StackGuardState) == 4, "unexpected size");
+    lwz(R0, in_bytes(JavaThread::stack_guard_state_offset()), R16_thread);
+    cmpwi(CCR0, R0, StackOverflow::stack_guard_enabled);
+    beq_predict_taken(CCR0, no_reserved_zone_enabling);
+
     // Compare frame pointers. There is no good stack pointer, as with stack
     // frame compression we can get different SPs when we do calls. A subsequent
     // call could have a smaller SP, so that this compare succeeds for an
@@ -950,9 +956,6 @@ void InterpreterMacroAssembler::lock_object(Register monitor, Register object) {
 
     // markWord displaced_header = obj->mark().set_unlocked();
 
-    // Load markWord from object into header.
-    ld(header, oopDesc::mark_offset_in_bytes(), object);
-
     if (DiagnoseSyncOnValueBasedClasses != 0) {
       load_klass(tmp, object);
       lwz(tmp, in_bytes(Klass::access_flags_offset()), tmp);
@@ -961,9 +964,11 @@ void InterpreterMacroAssembler::lock_object(Register monitor, Register object) {
     }
 
     if (LockingMode == LM_LIGHTWEIGHT) {
-      fast_lock(object, /* mark word */ header, tmp, slow_case);
+      lightweight_lock(object, header, tmp, slow_case);
       b(count_locking);
     } else if (LockingMode == LM_LEGACY) {
+      // Load markWord from object into header.
+      ld(header, oopDesc::mark_offset_in_bytes(), object);
 
       // Set displaced_header to be (markWord of object | UNLOCK_VALUE).
       ori(header, header, markWord::unlocked_value);
@@ -1095,23 +1100,7 @@ void InterpreterMacroAssembler::unlock_object(Register monitor) {
     ld(object, in_bytes(BasicObjectLock::obj_offset()), monitor);
 
     if (LockingMode == LM_LIGHTWEIGHT) {
-      // Check for non-symmetric locking. This is allowed by the spec and the interpreter
-      // must handle it.
-      Register tmp = current_header;
-      // First check for lock-stack underflow.
-      lwz(tmp, in_bytes(JavaThread::lock_stack_top_offset()), R16_thread);
-      cmplwi(CCR0, tmp, (unsigned)LockStack::start_offset());
-      ble(CCR0, slow_case);
-      // Then check if the top of the lock-stack matches the unlocked object.
-      addi(tmp, tmp, -oopSize);
-      ldx(tmp, tmp, R16_thread);
-      cmpd(CCR0, tmp, object);
-      bne(CCR0, slow_case);
-
-      ld(header, oopDesc::mark_offset_in_bytes(), object);
-      andi_(R0, header, markWord::monitor_value);
-      bne(CCR0, slow_case);
-      fast_unlock(object, header, slow_case);
+      lightweight_unlock(object, header, slow_case);
     } else {
       addi(object_mark_addr, object, oopDesc::mark_offset_in_bytes());
 
@@ -1777,7 +1766,7 @@ void InterpreterMacroAssembler::profile_obj_type(Register obj, Register mdo_addr
   // Klass seen before, nothing to do (regardless of unknown bit).
   //beq(CCR1, do_nothing);
 
-  andi_(R0, klass, TypeEntries::type_unknown);
+  andi_(R0, tmp, TypeEntries::type_unknown);
   // Already unknown. Nothing to do anymore.
   //bne(CCR0, do_nothing);
   crorc(CCR0, Assembler::equal, CCR1, Assembler::equal); // cr0 eq = cr1 eq or cr0 ne
@@ -1976,7 +1965,7 @@ void InterpreterMacroAssembler::profile_parameters_type(Register tmp1, Register 
   }
 }
 
-// Add a InterpMonitorElem to stack (see frame_sparc.hpp).
+// Add a monitor (see frame_ppc.hpp).
 void InterpreterMacroAssembler::add_monitor_to_stack(bool stack_is_empty, Register Rtemp1, Register Rtemp2) {
 
   // Very-local scratch registers.

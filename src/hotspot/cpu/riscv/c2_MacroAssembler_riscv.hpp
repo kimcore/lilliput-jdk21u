@@ -39,6 +39,13 @@
                        VectorRegister vrs,
                        bool is_latin, Label& DONE);
  public:
+  // Code used by cmpFastLock and cmpFastUnlock mach instructions in .ad file.
+  void fast_lock(Register object, Register box, Register tmp1, Register tmp2, Register tmp3);
+  void fast_unlock(Register object, Register box, Register tmp1, Register tmp2);
+  // Code used by cmpFastLockLightweight and cmpFastUnlockLightweight mach instructions in .ad file.
+  void fast_lock_lightweight(Register object, Register tmp1, Register tmp2, Register tmp3);
+  void fast_unlock_lightweight(Register object, Register tmp1, Register tmp2, Register tmp3);
+
   void string_compare(Register str1, Register str2,
                       Register cnt1, Register cnt2, Register result,
                       Register tmp1, Register tmp2, Register tmp3,
@@ -242,8 +249,6 @@
                         VectorRegister src, BasicType src_bt);
 
   void vfcvt_rtz_x_f_v_safe(VectorRegister dst, VectorRegister src);
-  void vfwcvt_rtz_x_f_v_safe(VectorRegister dst, VectorRegister src);
-  void vfncvt_rtz_x_f_w_safe(VectorRegister dst, VectorRegister src);
 
   void extract_v(Register dst, VectorRegister src, BasicType bt, int idx, VectorRegister tmp);
   void extract_fp_v(FloatRegister dst, VectorRegister src, BasicType bt, int idx, VectorRegister tmp);

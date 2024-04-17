@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -119,6 +119,10 @@ public class WhiteBox {
     return isMonitorInflated0(obj);
   }
 
+  public native int getLockStackCapacity();
+
+  public native boolean supportsRecursiveLightweightLocking();
+
   public native void forceSafepoint();
 
   public native void forceClassLoaderStatsSafepoint();
@@ -138,6 +142,12 @@ public class WhiteBox {
   public         int getConstantPoolCacheLength(Class<?> aClass) {
     Objects.requireNonNull(aClass);
     return getConstantPoolCacheLength0(aClass);
+  }
+
+  private native Object[] getResolvedReferences0(Class<?> aClass);
+  public         Object[] getResolvedReferences(Class<?> aClass) {
+    Objects.requireNonNull(aClass);
+    return getResolvedReferences0(aClass);
   }
 
   private native int remapInstructionOperandFromCPCache0(Class<?> aClass, int index);
@@ -486,6 +496,8 @@ public class WhiteBox {
   public native long incMetaspaceCapacityUntilGC(long increment);
   public native long metaspaceCapacityUntilGC();
   public native long metaspaceSharedRegionAlignment();
+
+  public native void cleanMetaspaces();
 
   // Metaspace Arena Tests
   public native long createMetaspaceTestContext(long commit_limit, long reserve_limit);

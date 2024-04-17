@@ -1904,22 +1904,12 @@ bool Arguments::check_vm_args_consistency() {
   }
 #endif
 
-
-#if !defined(X86) && !defined(AARCH64) && !defined(RISCV64) && !defined(ARM) && !defined(PPC64)
+#if !defined(X86) && !defined(AARCH64) && !defined(RISCV64) && !defined(ARM) && !defined(PPC64) && !defined(S390)
   if (LockingMode == LM_LIGHTWEIGHT) {
     FLAG_SET_CMDLINE(LockingMode, LM_LEGACY);
     warning("New lightweight locking not supported on this platform");
   }
 #endif
-
-  if (UseHeavyMonitors) {
-    if (FLAG_IS_CMDLINE(LockingMode) && LockingMode != LM_MONITOR) {
-      jio_fprintf(defaultStream::error_stream(),
-                  "Conflicting -XX:+UseHeavyMonitors and -XX:LockingMode=%d flags", LockingMode);
-      return false;
-    }
-    FLAG_SET_CMDLINE(LockingMode, LM_MONITOR);
-  }
 
 #if !defined(X86) && !defined(AARCH64) && !defined(PPC64) && !defined(RISCV64) && !defined(S390)
   if (LockingMode == LM_MONITOR) {
@@ -1928,7 +1918,7 @@ bool Arguments::check_vm_args_consistency() {
     return false;
   }
 #endif
-#if (defined(X86) || defined(PPC64)) && !defined(ZERO)
+#if defined(X86) && !defined(ZERO)
   if (LockingMode == LM_MONITOR && UseRTMForStackLocks) {
     jio_fprintf(defaultStream::error_stream(),
                 "LockingMode == 0 (LM_MONITOR) and -XX:+UseRTMForStackLocks are mutually exclusive");
